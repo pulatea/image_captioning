@@ -85,8 +85,15 @@ class CaptionGenerator(BaseCaptionGenerator):
         # raise NotImplementedError
         pass
 
-    def _get_embeddings(self, caption_indices=None):
-        return self.embedding(caption_indices)
+    def _get_embeddings(self, encoded_image=None, caption_indices=None):
+        if caption_indices is None:
+            embeddings = rearrange(encoded_image, 'batch embedding_dim -> batch 1 embedding_dim')
+        else:
+            embeddings = self.embedding(caption_indices)
+            if encoded_image is not None:
+                embeddings, _ = pack([encoded_image, embeddings], 'batch * embedding_dim')
+
+        return embeddings
 
     def forward(self, encoded_image, caption_indices, hidden_state=None):
         """Forward method.
@@ -102,8 +109,7 @@ class CaptionGenerator(BaseCaptionGenerator):
         if encoded_image is not None and caption_indices is not None:
             caption_indices = caption_indices[:, 1:]  # the encoded image will be used instead of the <SOS> token
 
-        # pass only the word embeddings as embeddings instead of [image, embedding1, embedding2, ..., embeddingN]
-        embeddings = self._get_embeddings(caption_indices=caption_indices)
+        embeddings = self._get_embeddings(encoded_image=encoded_image, caption_indices=caption_indices)
 
         output, hidden_state = self.rnn(input=embeddings, hx=hidden_state)
         logits = self.to_logits(output)
