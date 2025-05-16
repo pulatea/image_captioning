@@ -48,17 +48,16 @@ class ImageEncoder(BaseImageEncoder):
         """
         # resizing to (224, 224) - default input size for ViT models
         # bilinear interpolation gives us a smooth and common image resample
-        updated_image = F.interpolate(image, size=[224, 224], mode='bilinear', align_corners=False)
+        x = F.interpolate(image, size=[224, 224], mode='bilinear', align_corners=False)
 
-        intermediate_features = self.dinov2.get_intermediate_layers(updated_image,
-                                                                    n=1,
-                                                                    reshape=True,
-                                                                    return_class_token=True,
-                                                                    norm=True)
-        _, dino_cls_t = intermediate_features[-1]
+        layer_outputs = self.dinov2.get_intermediate_layers(x,
+                                                            n=1,
+                                                            reshape=True,
+                                                            return_class_token=True)
+        spatial_tokens, cls_token = layer_outputs[-1] # get the latest class token!
 
         # project cls token (image encoding) to have a compatible dimension with the decoder
-        return self.model_dim(dino_cls_t)
+        return self.model_dim(cls_token)
 
 
 class CaptionGenerator(BaseCaptionGenerator):
@@ -78,7 +77,6 @@ class CaptionGenerator(BaseCaptionGenerator):
                                 batch_first=True)
 
         self.to_logits = torch.nn.Linear(in_features=self.hidden_dim, out_features=self.vocabulary_size)
-
 
     def freeze(self):
         """Sets the requires_grad parameter to False for some model parameters."""

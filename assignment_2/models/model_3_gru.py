@@ -69,7 +69,7 @@ class CaptionGenerator(BaseCaptionGenerator):
                                              torch.nn.Dropout(0.5))
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
-        self.rnn = torch.nn.LSTM(
+        self.rnn = torch.nn.GRU(
             input_size=embedding_dim,
             hidden_size=hidden_dim,
             num_layers=num_layers,
